@@ -91,9 +91,14 @@ def run_webhook(bot: Bot, dp: Dispatcher, db: Database) -> None:
     )
     webhook_requests_handler.register(app, path=config.webhook_path)
 
-    # Привязка старта и остановки бота к жизненному циклу aiohttp
-    dp.startup.register(lambda: on_startup_webhook(bot, db))
-    dp.shutdown.register(lambda: on_shutdown_webhook(bot))
+    async def on_app_startup(app: web.Application) -> None:
+        await on_startup_webhook(bot, db)
+
+    async def on_app_shutdown(app: web.Application) -> None:
+        await on_shutdown_webhook(bot)
+
+    app.on_startup.append(on_app_startup)
+    app.on_shutdown.append(on_app_shutdown)
 
     # Настройка интеграции aiogram с aiohttp
     setup_application(app, dp, bot=bot)
